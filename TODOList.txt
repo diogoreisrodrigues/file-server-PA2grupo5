@@ -1,0 +1,36 @@
+Fazer com que seja pedido um nome de utilizador quando o cliente conectar-se ao servidor.
+
+Cada cliente deverá também criar um par de chaves (pública e privada).
+
+A chave privada de cada cliente deverá ficar guardada em memória e na pasta client_name/private 2,  enquanto que a chave pública deverá ficar guardada
+com o nome client_namePUk.key no diretório pki/public_keys 2, onde client_name deverá ser o nome do utilizador indicado durante a inicialização do cliente.
+
+Antes de qualquer pedido de ficheiros, terá de ser definida a política de segurança a seguir durante a comunicação.
+
+Perguntar ao prof sobre a parte do handshake do enunciado
+
+os ficheiros, estes deverão ser retornados para os clientes como um array de bytes, encriptados, utilizando encriptação simétrica com as chaves definidas no handshake
+
+Após a recepção, os ficheiros deverão ser desencriptados e a sua integridade verificada,o conteúdo do ficheiro deverá ser apresentado na consola do cliente, e o ficheiro deverá ser guardado na pasta client_name/files.
+
+A encriptação assimétrica deverá seguir o algoritmo RSA
+
+A encriptação simétrica deverá seguir o algoritmo AES com chaves de 256 bits
+
+A integridade/autenticidade dos ficheiros deverá ser verificada através de um hash SHA-256
+
+Cada sessão do utilizador deverá no máximo durar 5 pedidos, ou seja, após o 5 pedido o cliente e o servidor deverão realizar o novo handshake onde serão geradas novas chaves para a
+encriptação simétrica, e para o hashing dos pedidos/respostas.
+
+Poderão existir situações em que a dimensão de um ficheiro não permita o seu envio em apenas uma mensagem. Nesse caso o ficheiro deverá ser dividido em várias mensagens, pelo
+que a apresentação do mesmo no lado do cliente só deverá acontecer após a recepção do último pacote.
+
+Requisitos de implementação extra:
+
+O servidor deverá suportar vários algoritmos de encriptação simétrica, e o cliente deverá indicar qual o algoritmo desejado durante o handshake. Posteriormente este algoritmo deverá
+ser utilizado para toda a comunicação entre cliente–servidor.
+
+O servidor deverá suportar vários algoritmos de hashing, e o cliente deverá indicar qual o algoritmo desejado durante o handshake. Posteriormente este algoritmo deverá ser utilizado
+para toda a comunicação com entre cliente–servidor.
+
+A escolha dos algoritmos definidos no pontos anteriores deverá ser feita pela consola do cliente.
