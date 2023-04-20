@@ -1,32 +1,24 @@
+import java.math.BigInteger;
 import java.security.*;
+import java.util.Random;
 
 
 public class DiffieHellman {
 
-    private KeyPairGenerator keyGen;
-    private KeyPair keyPair;
+    private static final BigInteger G = BigInteger.valueOf ( 3 );
+    private static final BigInteger N = BigInteger.valueOf ( 1289971646 );
+    private static final int NUM_BITS = 128;
 
-    public PrivateKey generatePrivateKey() {
-        try {
-            keyGen = KeyPairGenerator.getInstance("EC");
-            keyGen.initialize(256);
-            keyPair = keyGen.generateKeyPair();
-            return keyPair.getPrivate();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        return null;
+    public static BigInteger generatePrivateKey ( ) throws NoSuchAlgorithmException {
+        Random randomGenerator = SecureRandom.getInstance ( "SHA1PRNG" );
+        return new BigInteger ( NUM_BITS , randomGenerator );
     }
 
-    public PublicKey generatePublicKey() {
-        try {
-            keyGen = KeyPairGenerator.getInstance("EC");
-            keyGen.initialize(256);
-            keyPair = keyGen.generateKeyPair();
-            return keyPair.getPublic();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        return null;
+    public static BigInteger generatePublicKey ( BigInteger privateKey ) {
+        return G.modPow ( privateKey , N );
+    }
+
+    public static BigInteger computePrivateKey ( BigInteger publicKey , BigInteger privateKey ) {
+        return publicKey.modPow ( privateKey , N );
     }
 }
