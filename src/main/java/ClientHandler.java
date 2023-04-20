@@ -1,7 +1,9 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.net.Socket;
+import java.security.*;
 
 /**
  * This class represents the client handler. It handles the communication with the client. It reads the file from the
@@ -13,6 +15,9 @@ public class ClientHandler extends Thread {
     private final ObjectOutputStream out;
     private final Socket client;
     private final boolean isConnected;
+    private final PrivateKey privateRSAKey;
+    private final PublicKey publicRSAKey;
+    private PublicKey senderPublicRSAKey;
 
     /**
      * Creates a ClientHandler object by specifying the socket to communicate with the client. All the processing is
@@ -22,31 +27,76 @@ public class ClientHandler extends Thread {
      *
      * @throws IOException when an I/O error occurs when creating the socket
      */
-    public ClientHandler ( Socket client ) throws IOException {
+    public ClientHandler ( Socket client ) throws Exception {
         this.client = client;
         in = new ObjectInputStream ( client.getInputStream ( ) );
         out = new ObjectOutputStream ( client.getOutputStream ( ) );
         isConnected = true; // TODO: Check if this is necessary or if it should be controlled
+        KeyPair keyPair = Encryption.generateKeyPair ( );
+        this.privateRSAKey = keyPair.getPrivate ( );
+        this.publicRSAKey = keyPair.getPublic ( );
+        senderPublicRSAKey = rsaKeyDistribution ( in );
+    }
+
+    private BigInteger agreeOnSharedSecret ( PublicKey senderPublicRSAKey ) throws Exception {
+        // Generate a pair of keys
+        BigInteger privateKey = DiffieHellman.generatePrivateKey ( );
+        BigInteger publicKey = DiffieHellman.generatePublicKey ( privateKey );
+        // Extracts the public key from the request
+        BigInteger clientPublicKey = new BigInteger ( Encryption.decryptRSA ( ( byte[] ) in.readObject ( ) , senderPublicRSAKey ) );
+        // Send the public key to the client
+        sendPublicDHKey ( publicKey );
+        // Generates the shared secret
+        return DiffieHellman.computePrivateKey ( clientPublicKey , privateKey );
+    }
+
+    private void sendPublicDHKey ( BigInteger publicKey ) throws Exception {
+        out.writeObject ( Encryption.encryptRSA ( publicKey.toByteArray ( ) , this.privateRSAKey ) );
     }
 
     @Override
     public void run ( ) {
         super.run ( );
+        BigInteger sharedSecret = null;
+        try {
+            sharedSecret = agreeOnSharedSecret ( senderPublicRSAKey );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         try {
             while ( isConnected ) {
-                // Reads the message to extract the path of the file
-                Message message = ( Message ) in.readObject ( );
-                String request = new String ( message.getMessage ( ) );
+
+                Message messageObj = ( Message ) in.readObject ( );
+                // Extracts and decrypt the message
+                byte[] decryptedMessage = Encryption.decryptMessage ( messageObj.getMessage ( ) , sharedSecret.toByteArray ( ) );
+
+
+                String request = new String ( decryptedMessage );
+                System.out.println ( "Request: " + request );
                 // Reads the file and sends it to the client
                 byte[] content = FileHandler.readFile ( RequestUtils.getAbsoluteFilePath ( request ) );
-                sendFile ( content );
+
+                sendFile ( content, sharedSecret );
             }
             // Close connection
             closeConnection ( );
-        } catch ( IOException | ClassNotFoundException e ) {
+        } catch (Exception e ) {
             // Close connection
             closeConnection ( );
         }
+    }
+
+    private PublicKey rsaKeyDistribution(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        // Extract the public key
+        PublicKey senderPublicRSAKey = ( PublicKey ) in.readObject ( );
+        // Send the public key
+        sendPublicRSAKey ( );
+        return senderPublicRSAKey;
+    }
+
+    private void sendPublicRSAKey ( ) throws IOException {
+        out.writeObject ( publicRSAKey );
+        out.flush ( );
     }
 
     /**
@@ -56,8 +106,12 @@ public class ClientHandler extends Thread {
      *
      * @throws IOException when an I/O error occurs when sending the file
      */
-    private void sendFile ( byte[] content ) throws IOException {
-        Message response = new Message ( content );
+    private void sendFile ( byte[] content, BigInteger sharedSecret ) throws Exception {
+
+        byte[] encryptedMessage = Encryption.encryptMessage ( content , sharedSecret.toByteArray ( ) );
+        // Creates the message object
+        Message response = new Message ( encryptedMessage);
+
         out.writeObject ( response );
         out.flush ( );
     }

@@ -1,3 +1,6 @@
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 /**
@@ -23,5 +26,18 @@ public class Message implements Serializable {
      */
     public byte[] getMessage ( ) {
         return message;
+    }
+
+    public byte[] toBytes() throws IOException {
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+
+        objectOutputStream.writeObject(this);
+        objectOutputStream.flush();
+        byte[] recordBytes = byteArrayOutputStream.toByteArray();
+        byteArrayOutputStream.close();
+
+        return recordBytes;
     }
 }

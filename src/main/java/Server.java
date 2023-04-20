@@ -45,7 +45,7 @@ public class Server implements Runnable {
      *
      * @throws IOException if an I/O error occurs when reading stream header
      */
-    private void process ( Socket client ) throws IOException {
+    private void process ( Socket client ) throws Exception {
         ClientHandler clientHandler = new ClientHandler ( client );
         clientHandler.start ( );
     }
