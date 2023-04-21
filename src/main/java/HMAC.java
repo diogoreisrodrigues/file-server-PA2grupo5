@@ -2,7 +2,7 @@ import java.security.MessageDigest;
 
 public class HMAC {
 
-    public static byte[] computeMAC ( byte[] message , byte[] key, int blocksize, MessageDigest messageDigest ){
+    public static byte[] computeHMAC ( byte[] message , byte[] key, int blocksize, MessageDigest messageDigest ){
 
         byte[] kPrime = computeBlockSizedKey(key, blocksize, messageDigest);
         byte[] opad = ByteUtils.generatePad (0x5c, blocksize);

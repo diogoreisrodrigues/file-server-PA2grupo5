@@ -4,6 +4,7 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.security.*;
+import java.util.Arrays;
 
 /**
  * This class represents the client handler. It handles the communication with the client. It reads the file from the
@@ -69,6 +70,19 @@ public class ClientHandler extends Thread {
                 Message messageObj = ( Message ) in.readObject ( );
                 // Extracts and decrypt the message
                 byte[] decryptedMessage = Encryption.decryptMessage ( messageObj.getMessage ( ) , sharedSecret.toByteArray ( ) );
+                // Extracts the MAC
+                byte[] digest = messageObj.getSignature ( );
+                // Verifies the MAC
+                MessageDigest messageDigest = MessageDigest.getInstance ( "SHA-1" );
+                //String hmacKey = "5v8y/B?E";
+                byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , 64 , messageDigest );
+                System.out.println ( "Message HMAC: " + new String ( result ) );
+
+                if ( !Arrays.equals(result, digest) ) {
+                    System.out.println ( "MAC verification failed" );
+                    closeConnection ( );
+                    return;
+                }
 
 
                 String request = new String ( decryptedMessage );
@@ -109,8 +123,13 @@ public class ClientHandler extends Thread {
     private void sendFile ( byte[] content, BigInteger sharedSecret ) throws Exception {
 
         byte[] encryptedMessage = Encryption.encryptMessage ( content , sharedSecret.toByteArray ( ) );
+        // Computes the HMAC of the message
+        MessageDigest messageDigest = MessageDigest.getInstance ( "SHA-1" );
+        //String hmacKey = "5v8y/B?E";
+        byte[] result = HMAC.computeHMAC ( content , sharedSecret.toByteArray() , 64 , messageDigest );
+        System.out.println ( "Message HMAC: " + new String ( result ) );
         // Creates the message object
-        Message response = new Message ( encryptedMessage);
+        Message response = new Message ( encryptedMessage, result);
 
         out.writeObject ( response );
         out.flush ( );

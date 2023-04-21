@@ -4,10 +4,8 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.file.Files;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
+import java.util.Arrays;
 import java.util.Scanner;
 
 /**
@@ -137,6 +135,21 @@ public class Client {
         try {
             Message response = ( Message ) in.readObject ( );
             byte[] decryptedMessage = Encryption.decryptMessage ( response.getMessage ( ) , sharedSecret.toByteArray ( ) );
+            // Checks the HMAC of the message
+            // Extracts the HMAC
+            byte[] digest = response.getSignature ( );
+            // Verifies the HMAC
+            MessageDigest messageDigest = MessageDigest.getInstance ( "SHA-1" );
+            //String hmacKey = "5v8y/B?E";
+            byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , 64 , messageDigest );
+            System.out.println ( "Message HMAC: " + new String ( result ) );
+
+            if ( !Arrays.equals(result, digest)) {
+                System.out.println ( "MAC verification failed" );
+                closeConnection ( );
+                return;
+            }
+
             System.out.println ( "File received" );
             //String response = new String ( decryptedMessage );
             FileHandler.writeFile ( userDir + "/" + fileName , decryptedMessage);
@@ -156,8 +169,13 @@ public class Client {
     public void sendMessage ( String filePath, BigInteger sharedSecret ) throws Exception {
 
         byte[] encryptedMessage = Encryption.encryptMessage ( filePath.getBytes ( ) , sharedSecret.toByteArray ( ) );
+        // Computes the HMAC of the message
+        MessageDigest messageDigest = MessageDigest.getInstance ( "SHA-1" );
+        //String hmacKey = "5v8y/B?E";
+        byte[] result = HMAC.computeHMAC ( filePath.getBytes ( ) , sharedSecret.toByteArray() , 64 , messageDigest );
+        System.out.println ( "Message HMAC: " + new String ( result ) );
         // Creates the message object
-        Message messageObj = new Message ( encryptedMessage);
+        Message messageObj = new Message ( encryptedMessage, result);
         // Sends the encrypted message
         out.writeObject ( messageObj );
 
