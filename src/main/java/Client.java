@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.security.*;
+import java.util.Arrays;
 import java.util.Scanner;
 
 /**
@@ -143,7 +144,7 @@ public class Client {
             byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , 64 , messageDigest );
             System.out.println ( "Message HMAC: " + new String ( result ) );
 
-            if ( result != digest ) {
+            if ( !Arrays.equals(result, digest)) {
                 System.out.println ( "MAC verification failed" );
                 closeConnection ( );
                 return;

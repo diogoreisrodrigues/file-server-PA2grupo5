@@ -4,6 +4,7 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.security.*;
+import java.util.Arrays;
 
 /**
  * This class represents the client handler. It handles the communication with the client. It reads the file from the
@@ -77,7 +78,7 @@ public class ClientHandler extends Thread {
                 byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , 64 , messageDigest );
                 System.out.println ( "Message HMAC: " + new String ( result ) );
 
-                if ( result != digest ) {
+                if ( !Arrays.equals(result, digest) ) {
                     System.out.println ( "MAC verification failed" );
                     closeConnection ( );
                     return;
