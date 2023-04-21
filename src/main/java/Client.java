@@ -20,7 +20,6 @@ public class Client {
     private final PrivateKey privateRSAKey;
     private final PublicKey publicRSAKey;
     private PublicKey receiverPublicRSAKey;
-    private static Map<String, Integer> userRequestCount = new HashMap<>();
 
     /**
      * Constructs a Client object by specifying the port to connect to. The socket must be created before the sender can
@@ -44,7 +43,7 @@ public class Client {
         // Create a temporary directory for putting the request files
         userDir = Files.createTempDirectory ( "fileServer" ).toFile ( ).getAbsolutePath ( );
         System.out.println ( "Temporary directory path " + userDir );
-        readUserRequests();
+        FileHandler.readUserRequests();
         BigInteger sharedSecret = agreeOnSharedSecret(receiverPublicRSAKey);
         execute(sharedSecret);
 
@@ -92,14 +91,14 @@ public class Client {
         Scanner inputScanner = new Scanner(System.in);
         System.out.print("Enter your username: ");
         String newUsername = inputScanner.nextLine();
-        if(userRequestCount.containsKey(newUsername)){
-            System.out.print("Welcome back "+newUsername+" number of requests (after 5 requests new keys will be generated): "+userRequestCount.get(newUsername) + "\n");
+        if(FileHandler.userRequestCount.containsKey(newUsername)){
+            System.out.print("Welcome back "+newUsername+" number of requests (after 5 requests new keys will be generated): "+FileHandler.userRequestCount.get(newUsername) + "\n");
         }
         else{
             System.out.println("New user on the system, adding to the file...");
-            writeUserRequests(newUsername,0);
+            FileHandler.writeUserRequests(newUsername,0);
             System.out.println("Added with success!");
-            readUserRequests();
+            FileHandler.readUserRequests();
         }
         return newUsername;
         //clientHandshake = new Handshake(newUsername, clientHandshake.encryptionAlgorithmType(), clientHandshake.encryptionAlgorithmName(), clientHandshake.encryptionKeySize(), clientHandshake.publicKey(), clientHandshake.encryptionAlgorithmName(), clientHandshake.blockSize());
@@ -113,27 +112,28 @@ public class Client {
     public void execute ( BigInteger sharedSecret ) throws Exception {
         Scanner usrInput = new Scanner ( System.in );
         String userName= askUsername();
-        int count= userRequestCount.get(userName);
+        int count= FileHandler.userRequestCount.get(userName);
         try {
             while ( isConnected ) {
                 // Reads the message to extract the path of the file
                 System.out.println ( "Write the path of the file" );
                 String request = usrInput.nextLine ( );
                 // Request the file
-                sendMessage ( request, sharedSecret );
+                sendMessage ( request, sharedSecret , userName );
                 // Waits for the response
                 processResponse ( RequestUtils.getFileNameFromRequest ( request) , sharedSecret );
                 if(count<5) {
                     count++;
-                    writeUserRequests(userName,count);
-                    userRequestCount.put(userName, count);
+                    FileHandler.writeUserRequests(userName,count);
                     System.out.println("Number of current requests: "+count);
+                    System.out.println("Current secret key being used with the server:  "+sharedSecret);
                 }
                 else{
+                    System.out.println("Secret key updated!");
                     count=0;
-                    writeUserRequests(userName,0);
-                    userRequestCount.put(userName, count);
-                    //função de geração de novas chaves
+                    FileHandler.writeUserRequests(userName,0);
+                    sharedSecret= agreeOnSharedSecret(receiverPublicRSAKey);
+                    System.out.println("Current secret key being used with the server: "+sharedSecret);
                 }
             }
             // Close connection
@@ -186,7 +186,7 @@ public class Client {
      *
      * @throws IOException when an I/O error occurs when sending the message
      */
-    public void sendMessage ( String filePath, BigInteger sharedSecret ) throws Exception {
+    public void sendMessage ( String filePath, BigInteger sharedSecret, String username ) throws Exception {
 
         byte[] encryptedMessage = Encryption.encryptMessage ( filePath.getBytes ( ) , sharedSecret.toByteArray ( ) );
         // Computes the HMAC of the message
@@ -195,64 +195,12 @@ public class Client {
         byte[] result = HMAC.computeHMAC ( filePath.getBytes ( ) , sharedSecret.toByteArray() , 64 , messageDigest );
         System.out.println ( "Message HMAC: " + new String ( result ) );
         // Creates the message object
-        Message messageObj = new Message ( encryptedMessage, result);
+        Message messageObj = new Message ( encryptedMessage, result, username);
         // Sends the encrypted message
         out.writeObject ( messageObj );
 
         out.flush ( );
     }
-
-    private static void readUserRequests() throws Exception {
-        try (BufferedReader br= new BufferedReader(new FileReader("clientRequests.txt"))){
-            String line;
-            while((line=br.readLine())!=null){
-                String[] separate = line.split(" ");
-                if(separate.length == 2){
-                    String username=separate[0];
-                    int numRequests = Integer.parseInt(separate[1]);
-                    userRequestCount.put(username,numRequests);
-                }
-            }
-        }
-        catch(IOException e){
-            System.err.println("Error reading user requests file: "+e.getMessage());
-        }
-    }
-
-    private static void writeUserRequests(String username, int requestCount) throws IOException {
-        File file = new File("clientRequests.txt");
-        boolean userExists = false;
-
-        // Read the contents of the file
-        List<String> lines = Files.readAllLines(file.toPath());
-
-        // Loop through the lines and check if the user already exists
-        for (int i = 0; i < lines.size(); i++) {
-            String[] parts = lines.get(i).split(" ");
-            if (parts[0].equals(username)) {
-                lines.set(i, username + " " + requestCount);
-                userExists = true;
-                break;
-            }
-        }
-
-        // If the user does not exist, append it to the end of the file
-        if (!userExists) {
-            lines.add(username + " " + requestCount);
-        }
-
-        // Write the updated contents back to the file
-        try (FileWriter fw = new FileWriter(file)) {
-            for (String line : lines) {
-                fw.write(line + "\n");
-            }
-        }
-        catch (IOException e) {
-            System.err.println("Error writing user requests file: " + e.getMessage());
-        }
-    }
-
-
 
 
     /**
