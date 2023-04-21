@@ -84,6 +84,7 @@ public class ClientHandler extends Thread {
                     return;
                 }
 
+
                 String request = new String ( decryptedMessage );
                 System.out.println ( "Request: " + request );
                 // Reads the file and sends it to the client
