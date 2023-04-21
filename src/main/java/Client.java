@@ -1,12 +1,9 @@
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.security.*;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.util.*;
 
 /**
  * This class represents the client. The client sends the messages to the server by means of a socket. The use of Object
@@ -22,8 +19,8 @@ public class Client {
     private final String userDir;
     private final PrivateKey privateRSAKey;
     private final PublicKey publicRSAKey;
-    
     private PublicKey receiverPublicRSAKey;
+    private static Map<String, Integer> userRequestCount = new HashMap<>();
 
     /**
      * Constructs a Client object by specifying the port to connect to. The socket must be created before the sender can
@@ -47,7 +44,7 @@ public class Client {
         // Create a temporary directory for putting the request files
         userDir = Files.createTempDirectory ( "fileServer" ).toFile ( ).getAbsolutePath ( );
         System.out.println ( "Temporary directory path " + userDir );
-        askUsername();
+        readUserRequests();
         BigInteger sharedSecret = agreeOnSharedSecret(receiverPublicRSAKey);
         execute(sharedSecret);
 
@@ -91,10 +88,20 @@ public class Client {
         out.writeObject ( publicKey );
     }
 
-    private void askUsername() {
+    private String askUsername() throws Exception {
         Scanner inputScanner = new Scanner(System.in);
-        System.out.print("Enter new username: ");
+        System.out.print("Enter your username: ");
         String newUsername = inputScanner.nextLine();
+        if(userRequestCount.containsKey(newUsername)){
+            System.out.print("Welcome back "+newUsername+" number of requests (after 5 requests new keys will be generated): "+userRequestCount.get(newUsername) + "\n");
+        }
+        else{
+            System.out.println("New user on the system, adding to the file...");
+            writeUserRequests(newUsername,0);
+            System.out.println("Added with success!");
+            readUserRequests();
+        }
+        return newUsername;
         //clientHandshake = new Handshake(newUsername, clientHandshake.encryptionAlgorithmType(), clientHandshake.encryptionAlgorithmName(), clientHandshake.encryptionKeySize(), clientHandshake.publicKey(), clientHandshake.encryptionAlgorithmName(), clientHandshake.blockSize());
     }
 
@@ -103,8 +110,10 @@ public class Client {
      * Executes the client. It reads the file from the console and sends it to the server. It waits for the response and
      * writes the file to the temporary directory.
      */
-    public void execute ( BigInteger sharedSecret ) {
+    public void execute ( BigInteger sharedSecret ) throws Exception {
         Scanner usrInput = new Scanner ( System.in );
+        String userName= askUsername();
+        int count= userRequestCount.get(userName);
         try {
             while ( isConnected ) {
                 // Reads the message to extract the path of the file
@@ -114,13 +123,23 @@ public class Client {
                 sendMessage ( request, sharedSecret );
                 // Waits for the response
                 processResponse ( RequestUtils.getFileNameFromRequest ( request) , sharedSecret );
+                if(count<5) {
+                    count++;
+                    writeUserRequests(userName,count);
+                    userRequestCount.put(userName, count);
+                    System.out.println("Number of current requests: "+count);
+                }
+                else{
+                    count=0;
+                    writeUserRequests(userName,0);
+                    userRequestCount.put(userName, count);
+                    //função de geração de novas chaves
+                }
             }
             // Close connection
             closeConnection ( );
-        } catch ( IOException e ) {
+        } catch (Exception e ) {
             throw new RuntimeException ( e );
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
         // Close connection
         closeConnection ( );
@@ -151,7 +170,8 @@ public class Client {
             }
 
             System.out.println ( "File received" );
-            //String response = new String ( decryptedMessage );
+            String printedResponse = new String ( decryptedMessage );
+            System.out.println("Content present on the file: "+ printedResponse);
             FileHandler.writeFile ( userDir + "/" + fileName , decryptedMessage);
         } catch (Exception e ) {
             e.printStackTrace ( );
@@ -181,6 +201,59 @@ public class Client {
 
         out.flush ( );
     }
+
+    private static void readUserRequests() throws Exception {
+        try (BufferedReader br= new BufferedReader(new FileReader("clientRequests.txt"))){
+            String line;
+            while((line=br.readLine())!=null){
+                String[] separate = line.split(" ");
+                if(separate.length == 2){
+                    String username=separate[0];
+                    int numRequests = Integer.parseInt(separate[1]);
+                    userRequestCount.put(username,numRequests);
+                }
+            }
+        }
+        catch(IOException e){
+            System.err.println("Error reading user requests file: "+e.getMessage());
+        }
+    }
+
+    private static void writeUserRequests(String username, int requestCount) throws IOException {
+        File file = new File("clientRequests.txt");
+        boolean userExists = false;
+
+        // Read the contents of the file
+        List<String> lines = Files.readAllLines(file.toPath());
+
+        // Loop through the lines and check if the user already exists
+        for (int i = 0; i < lines.size(); i++) {
+            String[] parts = lines.get(i).split(" ");
+            if (parts[0].equals(username)) {
+                lines.set(i, username + " " + requestCount);
+                userExists = true;
+                break;
+            }
+        }
+
+        // If the user does not exist, append it to the end of the file
+        if (!userExists) {
+            lines.add(username + " " + requestCount);
+        }
+
+        // Write the updated contents back to the file
+        try (FileWriter fw = new FileWriter(file)) {
+            for (String line : lines) {
+                fw.write(line + "\n");
+            }
+        }
+        catch (IOException e) {
+            System.err.println("Error writing user requests file: " + e.getMessage());
+        }
+    }
+
+
+
 
     /**
      * Closes the connection by closing the socket and the streams.
