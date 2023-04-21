@@ -89,8 +89,21 @@ public class ClientHandler extends Thread {
                 System.out.println ( "Request: " + request );
                 // Reads the file and sends it to the client
                 byte[] content = FileHandler.readFile ( RequestUtils.getAbsoluteFilePath ( request ) );
-
                 sendFile ( content, sharedSecret );
+
+                FileHandler.readUserRequests();
+                String username = messageObj.getUsername();
+                int count= FileHandler.userRequestCount.get(username);
+                if(count<5) {
+                    count++;
+                    System.out.println("Current secret key being used with user "+ username+" : " + sharedSecret);
+                }
+                else{
+                    count=0;
+                    sharedSecret= agreeOnSharedSecret(senderPublicRSAKey);
+                    System.out.println("Secret key updated with the user: "+username+". Current secret key being used: " + sharedSecret);
+                }
+                
             }
             // Close connection
             closeConnection ( );
@@ -129,7 +142,7 @@ public class ClientHandler extends Thread {
         byte[] result = HMAC.computeHMAC ( content , sharedSecret.toByteArray() , 64 , messageDigest );
         System.out.println ( "Message HMAC: " + new String ( result ) );
         // Creates the message object
-        Message response = new Message ( encryptedMessage, result);
+        Message response = new Message ( encryptedMessage, result, "server");
 
         out.writeObject ( response );
         out.flush ( );

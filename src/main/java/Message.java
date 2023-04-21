@@ -10,15 +10,17 @@ public class Message implements Serializable {
 
     private final byte[] message;
     private final byte[] signature;
+    private String username;
 
     /**
      * Constructs a Message object by specifying the message bytes that will be sent to the server.
      *
      * @param message the message that is sent to the server
      */
-    public Message ( byte[] message, byte[] signature) {
+    public Message ( byte[] message, byte[] signature , String username) {
         this.message = message;
         this.signature = signature;
+        this.username=username;
     }
 
     /**
@@ -51,4 +53,9 @@ public class Message implements Serializable {
 
         return recordBytes;
     }
+
+    public String getUsername() {
+        return username;
+    }
+
 }
