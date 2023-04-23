@@ -89,6 +89,7 @@ public class Client {
 
             }
 
+
             default -> {
                 System.out.print("Invalid option, restarting setup....\n");
                 algorithmOptions();
