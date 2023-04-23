@@ -76,7 +76,16 @@ public class Client {
                 System.out.println("----------------------------\n Please select the key size: \n * 1- 128bits \n * 2- 192bits \n * 3- 256bits");
                 System.out.print("Your option: ");
                 int op2 = usrInput.nextInt();
-                keySize = 16;
+                switch (op2) {
+                    case 1 -> keySize = 16;
+                    case 2 -> keySize = 24;
+                    case 3 -> keySize = 32;
+                    default -> {
+                        System.out.print("Invalid option, restarting setup....\n");
+                        algorithmOptions();
+                    }
+                }
+
             }
             case 2 -> {
                 chosenEncryptionAlgorithm = "DES";
