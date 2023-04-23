@@ -40,6 +40,7 @@ public class Client {
         KeyPair keyPair = Encryption.generateKeyPair ( );
         this.privateRSAKey = keyPair.getPrivate ( );
         this.publicRSAKey = keyPair.getPublic ( );
+
         // Performs the RSA key distribution
         receiverPublicRSAKey = rsaKeyDistribution ( );
         // Create a temporary directory for putting the request files
@@ -48,6 +49,8 @@ public class Client {
         FileHandler.readUserRequests();
         BigInteger sharedSecret = agreeOnSharedSecret(receiverPublicRSAKey);
         handshake = algorithmOptions();
+        writePublicKeysToDirectory("../file-server-PA2grupo5/pki/public_keys", publicRSAKey, handshake.getUsername());
+        writePrivateKeysToDirectory("../file-server-PA2grupo5/"+handshake.getUsername()+"/private_keys", privateRSAKey, handshake.getUsername());
         //send handshake
         sendHandshake(handshake);
         execute(sharedSecret, handshake);
@@ -97,8 +100,6 @@ public class Client {
                 keySize = 24;
 
             }
-
-
             default -> {
                 System.out.print("Invalid option, restarting setup....\n");
                 algorithmOptions();
@@ -135,6 +136,47 @@ public class Client {
         sendPublicRSAKey ( );
         // Receive the public key of the sender
         return ( PublicKey ) in.readObject ( );
+    }
+
+    public void writePublicKeysToDirectory(String directoryPath, PublicKey publicKey, String username) {
+        File directory = new File(directoryPath);
+
+        // create directory if it doesn't exist
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        String fileName =  username + "PUK.key";
+        File publicKeyFile = new File(directory, fileName);
+        try (FileWriter writer = new FileWriter(publicKeyFile)) {
+            String publicKeyString = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+            writer.write(publicKeyString);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void writePrivateKeysToDirectory(String directoryPath, PrivateKey privateKey, String username) {
+        File directory = new File(directoryPath);
+
+        // create directory if it doesn't exist
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        String fileName =  username + "PRK.key";
+        File privateKeyFile = new File(directory, fileName);
+        File gitIgnore = new File(directory, ".gitignore");
+        try (FileWriter writer = new FileWriter(privateKeyFile)) {
+            String privateKeyString = Base64.getEncoder().encodeToString(privateKey.getEncoded());
+            writer.write(privateKeyString);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try (FileWriter writer2 = new FileWriter(gitIgnore)) {
+            writer2.write("*.key");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendPublicRSAKey() {
