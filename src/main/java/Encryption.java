@@ -32,10 +32,10 @@ public class Encryption {
      *
      * @throws Exception when the decryption fails
      */
-    public static byte[] decryptMessage ( byte[] message , byte[] secretKey ) throws Exception {
-        byte[] secretKeyPadded = ByteBuffer.allocate ( 16 ).put ( secretKey ).array ( );
-        SecretKeySpec secreteKeySpec = new SecretKeySpec ( secretKeyPadded , "AES" );
-        Cipher cipher = Cipher.getInstance ( "AES/ECB/PKCS5Padding" );
+    public static byte[] decryptMessage ( byte[] message , byte[] secretKey,  String chosenAlgorithm, int keySize ) throws Exception {
+        byte[] secretKeyPadded = ByteBuffer.allocate ( keySize ).put ( secretKey ).array ( );
+        SecretKeySpec secreteKeySpec = new SecretKeySpec ( secretKeyPadded , chosenAlgorithm );
+        Cipher cipher = Cipher.getInstance (  chosenAlgorithm+"/ECB/PKCS5Padding" );
         cipher.init ( Cipher.DECRYPT_MODE , secreteKeySpec );
         return cipher.doFinal ( message );
     }
@@ -48,10 +48,10 @@ public class Encryption {
      *
      * @throws Exception when the encryption fails
      */
-    public static byte[] encryptMessage ( byte[] message , byte[] secretKey ) throws Exception {
-        byte[] secretKeyPadded = ByteBuffer.allocate ( 16 ).put ( secretKey ).array ( );
-        SecretKeySpec secreteKeySpec = new SecretKeySpec ( secretKeyPadded , "AES" );
-        Cipher cipher = Cipher.getInstance ( "AES/ECB/PKCS5Padding" );
+    public static byte[] encryptMessage ( byte[] message , byte[] secretKey, String chosenAlgorithm, int keySize ) throws Exception {
+        byte[] secretKeyPadded = ByteBuffer.allocate ( keySize ).put ( secretKey ).array ( );
+        SecretKeySpec secreteKeySpec = new SecretKeySpec ( secretKeyPadded , chosenAlgorithm );
+        Cipher cipher = Cipher.getInstance ( chosenAlgorithm+"/ECB/PKCS5Padding" );
         cipher.init ( Cipher.ENCRYPT_MODE , secreteKeySpec );
         return cipher.doFinal ( message );
     }

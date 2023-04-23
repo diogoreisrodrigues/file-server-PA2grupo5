@@ -21,6 +21,8 @@ public class Client {
     private final PublicKey publicRSAKey;
     private PublicKey receiverPublicRSAKey;
 
+    private Handshake handshake;
+
     /**
      * Constructs a Client object by specifying the port to connect to. The socket must be created before the sender can
      * send a message.
@@ -45,8 +47,78 @@ public class Client {
         System.out.println ( "Temporary directory path " + userDir );
         FileHandler.readUserRequests();
         BigInteger sharedSecret = agreeOnSharedSecret(receiverPublicRSAKey);
-        execute(sharedSecret);
+        handshake = algorithmOptions();
+        //send handshake
+        sendHandshake(handshake);
+        execute(sharedSecret, handshake);
 
+    }
+
+    private void sendHandshake(Handshake handshake) {
+        try {
+            out.writeObject(handshake);
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Handshake algorithmOptions() throws Exception {
+        String userName= askUsername();
+        String chosenEncryptionAlgorithm = null;
+        int keySize = 0;
+        Scanner usrInput = new Scanner(System.in);
+        System.out.println("--------------------------------------------------------\n Please select the encryption algorithm you want to use: \n * 1- AES \n * 2- DES \n * 3- 3DES");
+        int op1 = usrInput.nextInt();
+        switch (op1) {
+            case 1 -> {
+                chosenEncryptionAlgorithm = "AES";
+                System.out.println("----------------------------\n Please select the key size: \n * 1- 128bits \n * 2- 192bits \n * 3- 256bits");
+                System.out.print("Your option: ");
+                int op2 = usrInput.nextInt();
+                keySize = 16;
+            }
+            case 2 -> {
+                chosenEncryptionAlgorithm = "DES";
+                keySize = 8;
+            }
+            case 3 -> {
+
+                chosenEncryptionAlgorithm = "TripleDES";
+                keySize = 24;
+
+            }
+
+
+            default -> {
+                System.out.print("Invalid option, restarting setup....\n");
+                algorithmOptions();
+            }
+        }
+        System.out.println("--------------------------------------------------\n Please select the hash algorithm you want to use: \n * 1- MD5 \n * 2- SHA-256 \n * 3- SHA-512");
+        int op4 = usrInput.nextInt();
+        String chosenHashAlgorithm = null;
+        int blockSize = 0;
+        switch (op4) {
+            case 1 -> {
+                chosenHashAlgorithm = "MD5";
+                blockSize = 64;
+            }
+            case 2 -> {
+                chosenHashAlgorithm = "SHA256";
+                blockSize = 64;;
+            }
+            case 3 -> {
+                chosenHashAlgorithm = "SHA512";
+                blockSize = 64;;
+            }
+            default -> {
+                System.out.print("Invalid option, restarting setup....\n");
+                //optionsMenu();
+            }
+        }
+        Handshake handshake = new Handshake(userName, "Symmetric", chosenEncryptionAlgorithm,keySize, chosenHashAlgorithm, blockSize);
+        return handshake;
     }
 
     private PublicKey rsaKeyDistribution ( ) throws Exception {
@@ -109,29 +181,29 @@ public class Client {
      * Executes the client. It reads the file from the console and sends it to the server. It waits for the response and
      * writes the file to the temporary directory.
      */
-    public void execute ( BigInteger sharedSecret ) throws Exception {
+    public void execute (BigInteger sharedSecret, Handshake handshake) throws Exception {
         Scanner usrInput = new Scanner ( System.in );
-        String userName= askUsername();
-        int count= FileHandler.userRequestCount.get(userName);
+
+        int count= FileHandler.userRequestCount.get(handshake.getUsername());
         try {
             while ( isConnected ) {
                 // Reads the message to extract the path of the file
                 System.out.println ( "Write the path of the file" );
                 String request = usrInput.nextLine ( );
                 // Request the file
-                sendMessage ( request, sharedSecret , userName );
+                sendMessage ( request, sharedSecret , handshake );
                 // Waits for the response
-                processResponse ( RequestUtils.getFileNameFromRequest ( request) , sharedSecret );
+                processResponse ( RequestUtils.getFileNameFromRequest ( request) , sharedSecret, handshake );
                 if(count<5) {
                     count++;
-                    FileHandler.writeUserRequests(userName,count);
+                    FileHandler.writeUserRequests(handshake.getUsername(),count);
                     System.out.println("Number of current requests: "+count);
                     System.out.println("Current secret key being used with the server:  "+sharedSecret);
                 }
                 else{
                     System.out.println("Secret key updated!");
                     count=0;
-                    FileHandler.writeUserRequests(userName,0);
+                    FileHandler.writeUserRequests(handshake.getUsername(),0);
                     sharedSecret= agreeOnSharedSecret(receiverPublicRSAKey);
                     System.out.println("Current secret key being used with the server: "+sharedSecret);
                 }
@@ -148,19 +220,20 @@ public class Client {
     /**
      * Reads the response from the server and writes the file to the temporary directory.
      *
-     * @param fileName the name of the file to write
+     * @param fileName  the name of the file to write
+     * @param handshake
      */
-    private void processResponse ( String fileName, BigInteger sharedSecret ) {
+    private void processResponse (String fileName, BigInteger sharedSecret, Handshake handshake) {
         try {
             Message response = ( Message ) in.readObject ( );
-            byte[] decryptedMessage = Encryption.decryptMessage ( response.getMessage ( ) , sharedSecret.toByteArray ( ) );
+            byte[] decryptedMessage = Encryption.decryptMessage ( response.getMessage ( ) , sharedSecret.toByteArray ( ), handshake.getEncryptionAlgorithmName(), handshake.getEncryptionKeySize() );
             // Checks the HMAC of the message
             // Extracts the HMAC
             byte[] digest = response.getSignature ( );
             // Verifies the HMAC
-            MessageDigest messageDigest = MessageDigest.getInstance ( "SHA-1" );
+            MessageDigest messageDigest = MessageDigest.getInstance ( handshake.getHashAlgorithmName() );
             //String hmacKey = "5v8y/B?E";
-            byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , 64 , messageDigest );
+            byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , handshake.getBlockSize() , messageDigest );
             System.out.println ( "Message HMAC: " + new String ( result ) );
 
             if ( !Arrays.equals(result, digest)) {
@@ -186,16 +259,16 @@ public class Client {
      *
      * @throws IOException when an I/O error occurs when sending the message
      */
-    public void sendMessage ( String filePath, BigInteger sharedSecret, String username ) throws Exception {
+    public void sendMessage ( String filePath, BigInteger sharedSecret, Handshake handshake ) throws Exception {
 
-        byte[] encryptedMessage = Encryption.encryptMessage ( filePath.getBytes ( ) , sharedSecret.toByteArray ( ) );
+        byte[] encryptedMessage = Encryption.encryptMessage ( filePath.getBytes ( ) , sharedSecret.toByteArray ( ), handshake.getEncryptionAlgorithmName(), handshake.getEncryptionKeySize() );
         // Computes the HMAC of the message
-        MessageDigest messageDigest = MessageDigest.getInstance ( "SHA-1" );
+        MessageDigest messageDigest = MessageDigest.getInstance ( handshake.getHashAlgorithmName() );
         //String hmacKey = "5v8y/B?E";
-        byte[] result = HMAC.computeHMAC ( filePath.getBytes ( ) , sharedSecret.toByteArray() , 64 , messageDigest );
+        byte[] result = HMAC.computeHMAC ( filePath.getBytes ( ) , sharedSecret.toByteArray() , handshake.getBlockSize() , messageDigest );
         System.out.println ( "Message HMAC: " + new String ( result ) );
         // Creates the message object
-        Message messageObj = new Message ( encryptedMessage, result, username);
+        Message messageObj = new Message ( encryptedMessage, result, handshake.getUsername());
         // Sends the encrypted message
         out.writeObject ( messageObj );
 

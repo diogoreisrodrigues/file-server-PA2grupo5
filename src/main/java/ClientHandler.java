@@ -19,6 +19,7 @@ public class ClientHandler extends Thread {
     private final PrivateKey privateRSAKey;
     private final PublicKey publicRSAKey;
     private PublicKey senderPublicRSAKey;
+    private Handshake clientHandshake;
 
     /**
      * Creates a ClientHandler object by specifying the socket to communicate with the client. All the processing is
@@ -37,7 +38,12 @@ public class ClientHandler extends Thread {
         this.privateRSAKey = keyPair.getPrivate ( );
         this.publicRSAKey = keyPair.getPublic ( );
         senderPublicRSAKey = rsaKeyDistribution ( in );
+        //recieve handshake
+
+
     }
+
+
 
     private BigInteger agreeOnSharedSecret ( PublicKey senderPublicRSAKey ) throws Exception {
         // Generate a pair of keys
@@ -61,6 +67,7 @@ public class ClientHandler extends Thread {
         BigInteger sharedSecret = null;
         try {
             sharedSecret = agreeOnSharedSecret ( senderPublicRSAKey );
+            clientHandshake = (Handshake) in.readObject();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -69,13 +76,12 @@ public class ClientHandler extends Thread {
 
                 Message messageObj = ( Message ) in.readObject ( );
                 // Extracts and decrypt the message
-                byte[] decryptedMessage = Encryption.decryptMessage ( messageObj.getMessage ( ) , sharedSecret.toByteArray ( ) );
+                byte[] decryptedMessage = Encryption.decryptMessage ( messageObj.getMessage ( ) , sharedSecret.toByteArray ( ), clientHandshake.getEncryptionAlgorithmName(), clientHandshake.getEncryptionKeySize() );
                 // Extracts the MAC
                 byte[] digest = messageObj.getSignature ( );
                 // Verifies the MAC
-                MessageDigest messageDigest = MessageDigest.getInstance ( "SHA-1" );
-                //String hmacKey = "5v8y/B?E";
-                byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , 64 , messageDigest );
+                MessageDigest messageDigest = MessageDigest.getInstance ( clientHandshake.getHashAlgorithmName() );
+                byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , clientHandshake.getBlockSize() , messageDigest );
                 System.out.println ( "Message HMAC: " + new String ( result ) );
 
                 if ( !Arrays.equals(result, digest) ) {
@@ -135,11 +141,11 @@ public class ClientHandler extends Thread {
      */
     private void sendFile ( byte[] content, BigInteger sharedSecret ) throws Exception {
 
-        byte[] encryptedMessage = Encryption.encryptMessage ( content , sharedSecret.toByteArray ( ) );
+        byte[] encryptedMessage = Encryption.encryptMessage ( content , sharedSecret.toByteArray ( ), clientHandshake.getEncryptionAlgorithmName(), clientHandshake.getEncryptionKeySize());
         // Computes the HMAC of the message
-        MessageDigest messageDigest = MessageDigest.getInstance ( "SHA-1" );
+        MessageDigest messageDigest = MessageDigest.getInstance ( clientHandshake.getHashAlgorithmName() );
         //String hmacKey = "5v8y/B?E";
-        byte[] result = HMAC.computeHMAC ( content , sharedSecret.toByteArray() , 64 , messageDigest );
+        byte[] result = HMAC.computeHMAC ( content , sharedSecret.toByteArray() , clientHandshake.getBlockSize() , messageDigest );
         System.out.println ( "Message HMAC: " + new String ( result ) );
         // Creates the message object
         Message response = new Message ( encryptedMessage, result, "server");
