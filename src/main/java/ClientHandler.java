@@ -43,8 +43,17 @@ public class ClientHandler extends Thread {
 
     }
 
-
-
+    /**
+     * This method agrees on a shared secret using DH key exchange protocol
+     * Generates a pair of keys, sends its public key to the client and receives the client's public key
+     * Finally computes the shared secret using the received public key and its own private key
+     *
+     * @param senderPublicRSAKey the public key of the sender to encrypt and decrypt messages
+     *
+     * @return the agreed shared secret
+     *
+     * @throws Exception if occurs an error during the key exchange
+     */
     private BigInteger agreeOnSharedSecret ( PublicKey senderPublicRSAKey ) throws Exception {
         // Generate a pair of keys
         BigInteger privateKey = DiffieHellman.generatePrivateKey ( );
@@ -57,6 +66,13 @@ public class ClientHandler extends Thread {
         return DiffieHellman.computePrivateKey ( clientPublicKey , privateKey );
     }
 
+    /**
+     * This sends the public DH key encrypted using the servers RSA private key to the client
+     *
+     * @param publicKey the public DH key to be sent
+     *
+     * @throws Exception if there's an error encrypting and sending the public key
+     */
     private void sendPublicDHKey ( BigInteger publicKey ) throws Exception {
         out.writeObject ( Encryption.encryptRSA ( publicKey.toByteArray ( ) , this.privateRSAKey ) );
     }
@@ -119,6 +135,19 @@ public class ClientHandler extends Thread {
         }
     }
 
+    /**
+     * RSA key distribution
+     * Extracts the public key from the input stream
+     * Sends the public key to the receiver
+     *
+     * @param in the stream to extract from the input stream
+     *
+     * @return the public key extracted from the input stream
+     *
+     * @throws IOException if occurs an I/O error when sending the public key
+     *
+     * @throws ClassNotFoundException if the class of a serialized object couldn't be found
+     */
     private PublicKey rsaKeyDistribution(ObjectInputStream in) throws IOException, ClassNotFoundException {
         // Extract the public key
         PublicKey senderPublicRSAKey = ( PublicKey ) in.readObject ( );
@@ -127,6 +156,12 @@ public class ClientHandler extends Thread {
         return senderPublicRSAKey;
     }
 
+    /**
+     * This sends the client's public RSA key to the server and writes the public key
+     * to the output stream and flushes it
+     *
+     * @throws IOException if an I/O error occurs while writing to the output stream
+     */
     private void sendPublicRSAKey ( ) throws IOException {
         out.writeObject ( publicRSAKey );
         out.flush ( );

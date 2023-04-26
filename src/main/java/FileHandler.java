@@ -10,6 +10,10 @@ import java.util.Map;
 public class FileHandler {
 
 
+    /**
+     * This is a static hash map that keeps track of the number of requests made by each user
+     * The keys are the usernames and the values are the number of requests
+     */
     static Map<String, Integer> userRequestCount = new HashMap<>();
 
 
@@ -42,7 +46,13 @@ public class FileHandler {
     }
 
 
-
+    /**
+     * Reads the user request from the clientRequest.txt file and populates the userRequestCount map
+     * The file should contain lines in the format username numRequest, where numRequests is an integer
+     * If a line doesn't have two items, it will be ignored
+     *
+     * @throws Exception if is an error while reading the file
+     */
     static void readUserRequests() throws Exception {
         try (BufferedReader br= new BufferedReader(new FileReader("clientRequests.txt"))){
             String line;
