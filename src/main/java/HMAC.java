@@ -1,7 +1,23 @@
 import java.security.MessageDigest;
 
+/**
+ * This class provides a static method for computing an HMAC using a given message, key, block size and message digest algorithm
+ */
 public class HMAC {
 
+    /**
+     * Computes an HMAC using the parameters
+     *
+     * @param message the message to compute the HMAC for
+     *
+     * @param key the key to use for computing the HMAC
+     *
+     * @param blocksize the block size to use for the HMAC computation
+     *
+     * @param messageDigest the message digest algorithm to use for the HMAC computation
+     *
+     * @return the computed HMAC as a byte array
+     */
     public static byte[] computeHMAC ( byte[] message , byte[] key, int blocksize, MessageDigest messageDigest ){
 
         byte[] kPrime = computeBlockSizedKey(key, blocksize, messageDigest);
@@ -14,6 +30,17 @@ public class HMAC {
 
     }
 
+    /**
+     * Computes a block-sized key form the specified key
+     *
+     * @param key the key to compute a block-sized key from
+     *
+     * @param blocksize the block size to use for the HMAC computation
+     *
+     * @param messageDigest the message digest algorithm to use for the HMAC computation
+     *
+     * @return the computed block-sized key as a byte array
+     */
     private static byte[] computeBlockSizedKey(byte[] key, int blocksize, MessageDigest messageDigest) {
         if(key.length > blocksize){
             return messageDigest.digest(key);

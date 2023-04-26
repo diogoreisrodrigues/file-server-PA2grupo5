@@ -1,6 +1,9 @@
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Utility class for processing client requests
+ */
 public class RequestUtils {
 
     public static final String REQUEST_REGEX = "GET : (\\w+.txt)";

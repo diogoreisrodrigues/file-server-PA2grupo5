@@ -41,6 +41,13 @@ public class Message implements Serializable {
         return signature;
     }
 
+    /**
+     * Converts the current object into a byte array representation
+     *
+     * @return the byte array representation of the current object
+     *
+     * @throws IOException if is an error writing to the output stream
+     */
     public byte[] toBytes() throws IOException {
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -54,6 +61,10 @@ public class Message implements Serializable {
         return recordBytes;
     }
 
+    /**
+     * Returns the username
+     * @return the username
+     */
     public String getUsername() {
         return username;
     }

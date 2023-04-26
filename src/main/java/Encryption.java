@@ -5,19 +5,52 @@ import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 
+/**
+ * This class provides methods to encrypt and decrypt messages using RSA encryption and a symmetric encryption with the secret key
+ */
 public class Encryption {
+
+    /**
+     * This generates a new RSA key pair with 2048-bit key size
+     *
+     * @return a new RSA KeyPair object containing a public and a private key
+     *
+     * @throws Exception if there is an error generating the key pair
+     */
     public static KeyPair generateKeyPair ( ) throws Exception {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance ( "RSA" );
         keyPairGenerator.initialize ( 2048 );
         return keyPairGenerator.generateKeyPair ( );
     }
 
+    /**
+     * This encrypts a message using RSA encryption with the given public key
+     *
+     * @param message the message to encrypt
+     *
+     * @param publicKey the public key to use for encryption
+     *
+     * @return the encrypted message
+     *
+     * @throws Exception if is an error during the encryption process
+     */
     public static byte[] encryptRSA ( byte[] message , Key publicKey ) throws Exception {
         Cipher cipher = Cipher.getInstance ( "RSA" );
         cipher.init ( Cipher.ENCRYPT_MODE , publicKey );
         return cipher.doFinal ( message );
     }
 
+    /**
+     * This decrypts a message using RSA encryption and the provided private key.
+     *
+     * @param message the message to decrypt
+     *
+     * @param privateKey the private key to use ofr decryption
+     *
+     * @return the decrypted message as a byte array
+     *
+     * @throws Exception if is an issue with the decryption process
+     */
     public static byte[] decryptRSA ( byte[] message , Key privateKey ) throws Exception {
         Cipher cipher = Cipher.getInstance ( "RSA" );
         cipher.init ( Cipher.DECRYPT_MODE , privateKey );
