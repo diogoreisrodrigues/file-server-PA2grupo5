@@ -57,6 +57,12 @@ public class Client {
 
     }
 
+    /**
+     * This method sends a handshake object to the output stream,
+     * wich initiates a connection between the client and server
+     *
+     * @param handshake the handshake object to be sent
+     */
     private void sendHandshake(Handshake handshake) {
         try {
             out.writeObject(handshake);
@@ -66,6 +72,13 @@ public class Client {
         }
     }
 
+    /**
+     * This give to the user a prompt to select encryption and hash algorithms and their respective parameters, it creates a new handshake object
+     *
+     * @return a new handshake object with the selected encryption and hash algorithms and their respective parameters
+     *
+     * @throws Exception is occurs an error while prompting to the user or creating the handshake object
+     */
     private Handshake algorithmOptions() throws Exception {
         String userName= askUsername();
         String chosenEncryptionAlgorithm = null;
@@ -131,6 +144,13 @@ public class Client {
         return handshake;
     }
 
+    /**
+     * This method does an RSA key distribution by sending the public key and receiving the public key of the sender
+     *
+     * @return the public key of the sender as a PublicKey object
+     *
+     * @throws Exception if occurs an IO error or an error with the serialization
+     */
     private PublicKey rsaKeyDistribution ( ) throws Exception {
         // Sends the public key
         sendPublicRSAKey ( );
@@ -138,6 +158,16 @@ public class Client {
         return ( PublicKey ) in.readObject ( );
     }
 
+    /**
+     * This method writes the provided public key to a file in the specified directory with a filename consisting
+     * of the provided username and "PUK.key" extension
+     *
+     * @param directoryPath the path to the directory where the key file will be written
+     *
+     * @param publicKey the public key that will be written in to the file
+     *
+     * @param username the username that gonna be used in the filename
+     */
     public void writePublicKeysToDirectory(String directoryPath, PublicKey publicKey, String username) {
         File directory = new File(directoryPath);
 
@@ -155,6 +185,17 @@ public class Client {
         }
     }
 
+    /**
+     * This method writes a given private key to a specified directory on the file system,
+     * along with a .gitignore file that ignores all key files in that directory
+     *
+     * @param directoryPath the path of the directory where the key file
+     *                      and .gitignore file will be stored
+     *
+     * @param privateKey the private key that gonna be written to the file system
+     *
+     * @param username the username of the user associated with the private key
+     */
     public void writePrivateKeysToDirectory(String directoryPath, PrivateKey privateKey, String username) {
         File directory = new File(directoryPath);
 
@@ -179,6 +220,9 @@ public class Client {
         }
     }
 
+    /**
+     * This method has no parameters and it sends a public RSA key to the other end of a connection
+     */
     private void sendPublicRSAKey() {
         try {
             out.writeObject ( publicRSAKey );
@@ -188,6 +232,15 @@ public class Client {
         }
     }
 
+    /**
+     * This method computes the shared secret between two parties using the Diffie-Hellman key exchange algorithm
+     *
+     * @param receiverPublicRSAKey the public RSA key of the receiver to encrypt the public DH ky
+     *
+     * @return the shared secret as an BigInteger
+     *
+     * @throws Exception if occurs any error during the computation of the shared secret
+     */
     private BigInteger agreeOnSharedSecret ( PublicKey receiverPublicRSAKey ) throws Exception {
         // Generates a private key
         BigInteger privateDHKey = DiffieHellman.generatePrivateKey ( );
@@ -199,6 +252,7 @@ public class Client {
         // Generates the shared secret
         return DiffieHellman.computePrivateKey ( serverPublicKey , privateDHKey );
     }
+
     /**
      * Sends the public key to the receiver.
      *
@@ -210,6 +264,16 @@ public class Client {
         out.writeObject ( publicKey );
     }
 
+    /**
+     * This method asks the user for username and checks if is a returning user or a new onw
+     * If the user is returning, their username is retrieved from the list of users in the system and their number of requests
+     * If the user is new, their username is added to the list of users in the system and their number of request is et to 0
+     *
+     * @return the username entered by the user
+     *
+     * @throws Exception if occurs an error reading the username input or accessing the file
+     * containing the list of the users and their request counts
+     */
     private String askUsername() throws Exception {
         Scanner inputScanner = new Scanner(System.in);
         System.out.print("Enter your username: ");
@@ -272,7 +336,8 @@ public class Client {
      * Reads the response from the server and writes the file to the temporary directory.
      *
      * @param fileName  the name of the file to write
-     * @param handshake
+     *
+     * @param handshake the handshake object containing the encryption and HMAC algorithms
      */
     private void processResponse (String fileName, BigInteger sharedSecret, Handshake handshake) {
         try {
