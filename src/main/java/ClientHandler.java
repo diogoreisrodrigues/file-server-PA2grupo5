@@ -20,6 +20,11 @@ public class ClientHandler extends Thread {
     private final PublicKey publicRSAKey;
     private PublicKey senderPublicRSAKey;
     private Handshake clientHandshake;
+    private boolean canHandshake = true;
+
+    private int count;
+
+    private String username;
 
     /**
      * Creates a ClientHandler object by specifying the socket to communicate with the client. All the processing is
@@ -84,11 +89,36 @@ public class ClientHandler extends Thread {
         try {
             sharedSecret = agreeOnSharedSecret ( senderPublicRSAKey );
             clientHandshake = (Handshake) in.readObject();
+            FileHandler.readUserRequests();
+            username = clientHandshake.getUsername();
+            count= FileHandler.userRequestCount.get(username);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
         try {
             while ( isConnected ) {
+
+
+                if(count<5) {
+                    count++;
+                    System.out.println("Current secret key being used with user "+ username+" : " + sharedSecret);
+                    canHandshake = true;
+                    out.writeBoolean(canHandshake);
+                    out.flush ( );
+                    FileHandler.writeUserRequests(username,count);  //update the count of requests for the user
+                }
+                else{
+                    count=0;
+                    canHandshake=false;
+                    out.writeBoolean(canHandshake);
+                    out.flush ( );
+                    sharedSecret= agreeOnSharedSecret(senderPublicRSAKey);
+                    System.out.println("Secret key updated with the user: "+username+". Current secret key being used: " + sharedSecret);
+                    FileHandler.writeUserRequests(username,count);  //update the count of requests for the user
+
+                }
+
 
                 Message messageObj = ( Message ) in.readObject ( );
                 // Extracts and decrypt the message
@@ -113,19 +143,7 @@ public class ClientHandler extends Thread {
                 byte[] content = FileHandler.readFile ( RequestUtils.getAbsoluteFilePath ( request ) );
                 sendFile ( content, sharedSecret );
 
-                FileHandler.readUserRequests();
-                String username = messageObj.getUsername();
-                int count= FileHandler.userRequestCount.get(username);
-                if(count<5) {
-                    count++;
-                    System.out.println("Current secret key being used with user "+ username+" : " + sharedSecret);
-                }
-                else{
-                    count=0;
-                    sharedSecret= agreeOnSharedSecret(senderPublicRSAKey);
-                    System.out.println("Secret key updated with the user: "+username+". Current secret key being used: " + sharedSecret);
-                }
-                
+
             }
             // Close connection
             closeConnection ( );
