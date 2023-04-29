@@ -42,7 +42,6 @@ public class Client {
         KeyPair keyPair = Encryption.generateKeyPair ( );
         this.privateRSAKey = keyPair.getPrivate ( );
         this.publicRSAKey = keyPair.getPublic ( );
-
         // Performs the RSA key distribution
         receiverPublicRSAKey = rsaKeyDistribution ( );
         // Create a temporary directory for putting the request files
@@ -56,7 +55,6 @@ public class Client {
         //send handshake
         sendHandshake(handshake);
         execute(sharedSecret, handshake);
-
     }
 
     /**
