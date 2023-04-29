@@ -79,6 +79,7 @@ public class ClientHandler extends Thread {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
         try {
             while ( isConnected ) {
 
