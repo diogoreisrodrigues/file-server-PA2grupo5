@@ -56,7 +56,7 @@ public class FileHandler {
             }
         }
         catch(IOException e){
-            System.err.println("Error reading user requests file: "+e.getMessage());
+            throw new IOException("Failed to write to file.");
         }
     }
 
@@ -64,10 +64,8 @@ public class FileHandler {
         File file = new File("clientRequests.txt");
         boolean userExists = false;
 
-        // Read the contents of the file
         List<String> lines = Files.readAllLines(file.toPath());
 
-        // Loop through the lines and check if the user already exists
         for (int i = 0; i < lines.size(); i++) {
             String[] parts = lines.get(i).split(" ");
             if (parts[0].equals(username)) {
@@ -76,13 +74,10 @@ public class FileHandler {
                 break;
             }
         }
-
-        // If the user does not exist, append it to the end of the file
         if (!userExists) {
             lines.add(username + " " + requestCount);
         }
 
-        // Write the updated contents back to the file
         try (FileWriter fw = new FileWriter(file)) {
             for (String line : lines) {
                 fw.write(line + "\n");
@@ -90,7 +85,7 @@ public class FileHandler {
             userRequestCount.put(username, requestCount);
         }
         catch (IOException e) {
-            System.err.println("Error writing user requests file: " + e.getMessage());
+            throw new IOException("Failed to write to file.");
         }
     }
 
