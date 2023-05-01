@@ -23,6 +23,8 @@ public class Client {
 
     private Handshake handshake;
 
+    private Boolean acceptedHandshake;
+
     /**
      * Constructs a Client object by specifying the port to connect to. The socket must be created before the sender can
      * send a message.
@@ -40,7 +42,6 @@ public class Client {
         KeyPair keyPair = Encryption.generateKeyPair ( );
         this.privateRSAKey = keyPair.getPrivate ( );
         this.publicRSAKey = keyPair.getPublic ( );
-
         // Performs the RSA key distribution
         receiverPublicRSAKey = rsaKeyDistribution ( );
         // Create a temporary directory for putting the request files
@@ -54,7 +55,6 @@ public class Client {
         //send handshake
         sendHandshake(handshake);
         execute(sharedSecret, handshake);
-
     }
 
     /**
@@ -302,26 +302,23 @@ public class Client {
         int count= FileHandler.userRequestCount.get(handshake.getUsername());
         try {
             while ( isConnected ) {
+
+
+                acceptedHandshake = in.readBoolean();
+                if(!acceptedHandshake){
+                    System.out.println("Handshake not accepted, restarting connection...");
+                    sharedSecret= agreeOnSharedSecret(receiverPublicRSAKey);
+                    System.out.println("Current secret key being used with the server: "+sharedSecret);
+                }
                 // Reads the message to extract the path of the file
                 System.out.println ( "Write the path of the file" );
                 String request = usrInput.nextLine ( );
+
                 // Request the file
                 sendMessage ( request, sharedSecret , handshake );
                 // Waits for the response
                 processResponse ( RequestUtils.getFileNameFromRequest ( request) , sharedSecret, handshake );
-                if(count<5) {
-                    count++;
-                    FileHandler.writeUserRequests(handshake.getUsername(),count);
-                    System.out.println("Number of current requests: "+count);
-                    System.out.println("Current secret key being used with the server:  "+sharedSecret);
-                }
-                else{
-                    System.out.println("Secret key updated!");
-                    count=0;
-                    FileHandler.writeUserRequests(handshake.getUsername(),0);
-                    sharedSecret= agreeOnSharedSecret(receiverPublicRSAKey);
-                    System.out.println("Current secret key being used with the server: "+sharedSecret);
-                }
+
             }
             // Close connection
             closeConnection ( );
