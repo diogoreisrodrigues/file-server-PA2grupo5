@@ -35,11 +35,12 @@ public class EncryptionTest {
         String message = "Hello world!";
         BigInteger privateKey= DiffieHellman.generatePrivateKey();
         BigInteger publicKey= DiffieHellman.generatePublicKey(privateKey);
+        BigInteger secretKey = DiffieHellman.computePrivateKey(publicKey,privateKey);
 
-        byte[] encryptedMessage = Encryption.encryptMessage(message.getBytes(), privateKey.toByteArray(), "AES", 16);
+        byte[] encryptedMessage = Encryption.encryptMessage(message.getBytes(), secretKey.toByteArray(), "AES", 16);
         Assertions.assertNotNull(encryptedMessage);
 
-        byte[] decryptedMessage = Encryption.decryptMessage(encryptedMessage, publicKey.toByteArray(), "AES", 16);
+        byte[] decryptedMessage = Encryption.decryptMessage(encryptedMessage, secretKey.toByteArray(), "AES", 16);
         Assertions.assertNotNull(decryptedMessage);
         Assertions.assertEquals(message, new String(decryptedMessage));
     }
