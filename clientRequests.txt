@@ -1,4 +1,2 @@
-user1 0
-user2 5
 Diogo 3
-Jotta 0
+user1 0
