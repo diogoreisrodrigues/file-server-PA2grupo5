@@ -12,7 +12,7 @@ import java.util.Arrays;
  */
 public class ClientHandler extends Thread {
 
-    private final ObjectInputStream in;
+    private ObjectInputStream in;
     private final ObjectOutputStream out;
     private final Socket client;
     private final boolean isConnected;
@@ -21,8 +21,9 @@ public class ClientHandler extends Thread {
     private PublicKey senderPublicRSAKey;
     private Handshake clientHandshake;
     private boolean canHandshake = true;
-    private static int count;
+    private int count;
     private String username;
+    private BigInteger sharedSecret;
 
     /**
      * Creates a ClientHandler object by specifying the socket to communicate with the client. All the processing is
@@ -55,7 +56,7 @@ public class ClientHandler extends Thread {
      *
      * @throws Exception if occurs an error during the key exchange
      */
-    private BigInteger agreeOnSharedSecret ( PublicKey senderPublicRSAKey ) throws Exception {
+    public BigInteger agreeOnSharedSecret( PublicKey senderPublicRSAKey ) throws Exception {
         // Generate a pair of keys
         BigInteger privateKey = DiffieHellman.generatePrivateKey ( );
         BigInteger publicKey = DiffieHellman.generatePublicKey ( privateKey );
@@ -74,30 +75,37 @@ public class ClientHandler extends Thread {
      *
      * @throws Exception if there's an error encrypting and sending the public key
      */
-    private void sendPublicDHKey ( BigInteger publicKey ) throws Exception {
+    public void sendPublicDHKey ( BigInteger publicKey ) throws Exception {
         out.writeObject ( Encryption.encryptRSA ( publicKey.toByteArray ( ) , this.privateRSAKey ) );
+    }
+
+    /**
+     * Setups the client handler with the sharedSecret, clientHandshake and
+     * User Requests count
+     * @throws Exception
+     */
+    public void setupClientHandler() throws Exception {
+        sharedSecret = agreeOnSharedSecret ( senderPublicRSAKey );
+        clientHandshake = (Handshake) in.readObject();
+        FileHandler.readUserRequests();
+        username = clientHandshake.getUsername();
+        count= FileHandler.userRequestCount.get(username);
     }
 
     @Override
     public void run ( ) {
         super.run ( );
-        BigInteger sharedSecret = null;
+        sharedSecret = null;
         try {
-            sharedSecret = agreeOnSharedSecret ( senderPublicRSAKey );
-            clientHandshake = (Handshake) in.readObject();
-            FileHandler.readUserRequests();
-            username = clientHandshake.getUsername();
-            count= FileHandler.userRequestCount.get(username);
+            setupClientHandler();
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
         try {
             while ( isConnected ) {
-
-
                 if(count<5) {
-                    count++;
                     System.out.println("Current secret key being used with user "+ username+" : " + sharedSecret);
                     canHandshake = true;
                     out.writeBoolean(canHandshake);
@@ -112,34 +120,12 @@ public class ClientHandler extends Thread {
                     sharedSecret= agreeOnSharedSecret(senderPublicRSAKey);
                     System.out.println("Secret key updated with the user: "+username+". Current secret key being used: " + sharedSecret);
                     FileHandler.writeUserRequests(username,count);  //update the count of requests for the user
-
                 }
+                byte[] decryptedMessage = handleMessage();
 
+                sendContentOfFile(decryptedMessage);
 
-                Message messageObj = ( Message ) in.readObject ( );
-                // Extracts and decrypt the message
-                byte[] decryptedMessage = Encryption.decryptMessage ( messageObj.getMessage ( ) , sharedSecret.toByteArray ( ), clientHandshake.getEncryptionAlgorithmName(), clientHandshake.getEncryptionKeySize() );
-                // Extracts the MAC
-                byte[] digest = messageObj.getSignature ( );
-                // Verifies the MAC
-                MessageDigest messageDigest = MessageDigest.getInstance ( clientHandshake.getHashAlgorithmName() );
-                byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , clientHandshake.getBlockSize() , messageDigest );
-                System.out.println ( "Message HMAC: " + new String ( result ) );
-
-                if ( !Arrays.equals(result, digest) ) {
-                    System.out.println ( "MAC verification failed" );
-                    closeConnection ( );
-                    return;
-                }
-
-
-                String request = new String ( decryptedMessage );
-                System.out.println ( "Request: " + request );
-                // Reads the file and sends it to the client
-                byte[] content = FileHandler.readFile ( RequestUtils.getAbsoluteFilePath ( request ) );
-                sendFile ( content, sharedSecret );
-
-
+                count++;
             }
             // Close connection
             closeConnection ( );
@@ -147,6 +133,44 @@ public class ClientHandler extends Thread {
             // Close connection
             closeConnection ( );
         }
+    }
+
+    /**
+     * Handles the encrypted message of the user and extracts its content
+     * @return decryptedMessage the decrypted message
+     * @throws Exception
+     */
+    public byte[] handleMessage() throws Exception {
+        Message messageObj = ( Message ) in.readObject ( );
+        // Extracts and decrypt the message
+        byte[] decryptedMessage = Encryption.decryptMessage ( messageObj.getMessage ( ) , sharedSecret.toByteArray ( ), clientHandshake.getEncryptionAlgorithmName(), clientHandshake.getEncryptionKeySize() );
+        // Extracts the MAC
+        byte[] digest = messageObj.getSignature ( );
+        // Verifies the MAC
+        MessageDigest messageDigest = MessageDigest.getInstance ( clientHandshake.getHashAlgorithmName() );
+        byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , clientHandshake.getBlockSize() , messageDigest );
+        System.out.println ( "Message HMAC: " + new String ( result ) );
+
+        if ( !Arrays.equals(result, digest) ) {
+            System.out.println ( "MAC verification failed" );
+            closeConnection ( );
+        }
+
+        return  decryptedMessage;
+    }
+
+    /**
+     * Function that reads the contente from the file and sends it
+     * to the user
+     * @param decryptedMessage the decrypted message
+     * @throws Exception
+     */
+    public void sendContentOfFile(byte[] decryptedMessage) throws Exception {
+        String request = new String ( decryptedMessage );
+        System.out.println ( "Request: " + request );
+        // Reads the file and sends it to the client
+        byte[] content = FileHandler.readFile ( RequestUtils.getAbsoluteFilePath ( request ) );
+        sendFile ( content, sharedSecret );
     }
 
     /**
@@ -162,7 +186,7 @@ public class ClientHandler extends Thread {
      *
      * @throws ClassNotFoundException if the class of a serialized object couldn't be found
      */
-    private PublicKey rsaKeyDistribution(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    public PublicKey rsaKeyDistribution(ObjectInputStream in) throws IOException, ClassNotFoundException {
         // Extract the public key
         PublicKey senderPublicRSAKey = ( PublicKey ) in.readObject ( );
         // Send the public key
@@ -176,7 +200,7 @@ public class ClientHandler extends Thread {
      *
      * @throws IOException if an I/O error occurs while writing to the output stream
      */
-    private void sendPublicRSAKey ( ) throws IOException {
+    public void sendPublicRSAKey ( ) throws IOException {
         out.writeObject ( publicRSAKey );
         out.flush ( );
     }
@@ -188,7 +212,7 @@ public class ClientHandler extends Thread {
      *
      * @throws IOException when an I/O error occurs when sending the file
      */
-    private void sendFile ( byte[] content, BigInteger sharedSecret ) throws Exception {
+    public void sendFile ( byte[] content, BigInteger sharedSecret ) throws Exception {
 
         byte[] encryptedMessage = Encryption.encryptMessage ( content , sharedSecret.toByteArray ( ), clientHandshake.getEncryptionAlgorithmName(), clientHandshake.getEncryptionKeySize());
         // Computes the HMAC of the message
@@ -203,8 +227,9 @@ public class ClientHandler extends Thread {
         out.flush ( );
     }
 
-    public static int getCouDnt() {
-        return count;
+    public PublicKey getSenderPublicRSAKey() {
+        return senderPublicRSAKey;
+
     }
 
     /**
