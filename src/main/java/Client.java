@@ -22,7 +22,7 @@ public class Client {
     private PublicKey receiverPublicRSAKey;
 
     private Handshake handshake;
-
+    private String userName;
     private Boolean acceptedHandshake;
 
     /**
@@ -49,7 +49,8 @@ public class Client {
         System.out.println ( "Temporary directory path " + userDir );
         FileHandler.readUserRequests();
         BigInteger sharedSecret = agreeOnSharedSecret(receiverPublicRSAKey);
-        handshake = algorithmOptions();
+        userName=askUsername();
+        handshake=algorithmOptions();
         writePublicKeysToDirectory("../file-server-PA2grupo5/pki/public_keys", publicRSAKey, handshake.getUsername());
         writePrivateKeysToDirectory("../file-server-PA2grupo5/"+handshake.getUsername()+"/private_keys", privateRSAKey, handshake.getUsername());
         //send handshake
@@ -80,67 +81,69 @@ public class Client {
      * @throws Exception is occurs an error while prompting to the user or creating the handshake object
      */
     private Handshake algorithmOptions() throws Exception {
-        String userName= askUsername();
         String chosenEncryptionAlgorithm = null;
         int keySize = 0;
-        Scanner usrInput = new Scanner(System.in);
-        System.out.println("--------------------------------------------------------\n Please select the encryption algorithm you want to use: \n * 1- AES \n * 2- DES \n * 3- 3DES");
-        int op1 = usrInput.nextInt();
-        switch (op1) {
-            case 1 -> {
-                chosenEncryptionAlgorithm = "AES";
-                System.out.println("----------------------------\n Please select the key size: \n * 1- 128bits \n * 2- 192bits \n * 3- 256bits");
-                System.out.print("Your option: ");
-                int op2 = usrInput.nextInt();
-                switch (op2) {
-                    case 1 -> keySize = 16;
-                    case 2 -> keySize = 24;
-                    case 3 -> keySize = 32;
-                    default -> {
-                        System.out.print("Invalid option, restarting setup....\n");
-                        algorithmOptions();
+
+            Scanner usrInput = new Scanner(System.in);
+            System.out.println("--------------------------------------------------------\n Please select the encryption algorithm you want to use: \n * 1- AES \n * 2- DES \n * 3- 3DES");
+            int op1 = usrInput.nextInt();
+            switch (op1) {
+                case 1 -> {
+                    chosenEncryptionAlgorithm = "AES";
+                    System.out.println("----------------------------\n Please select the key size: \n * 1- 128bits \n * 2- 192bits \n * 3- 256bits");
+                    System.out.print("Your option: ");
+                    int op2 = usrInput.nextInt();
+                    switch (op2) {
+                        case 1 -> keySize = 16;
+                        case 2 -> keySize = 24;
+                        case 3 -> keySize = 32;
+                        default -> {
+                            System.out.print("Invalid option, restarting setup....\n");
+                            algorithmOptions();
+                        }
                     }
+
                 }
+                case 2 -> {
+                    chosenEncryptionAlgorithm = "DES";
+                    keySize = 8;
+                }
+                case 3 -> {
 
-            }
-            case 2 -> {
-                chosenEncryptionAlgorithm = "DES";
-                keySize = 8;
-            }
-            case 3 -> {
+                    chosenEncryptionAlgorithm = "TripleDES";
+                    keySize = 24;
 
-                chosenEncryptionAlgorithm = "TripleDES";
-                keySize = 24;
+                }
+                default -> {
+                    System.out.print("Invalid option, restarting setup....\n");
+                    algorithmOptions();
+                }
+            }
+            System.out.println("--------------------------------------------------\n Please select the hash algorithm you want to use: \n * 1- MD5 \n * 2- SHA-256 \n * 3- SHA-512");
+            int op4 = usrInput.nextInt();
+            String chosenHashAlgorithm = null;
+            int blockSize = 0;
+            switch (op4) {
+                case 1 -> {
+                    chosenHashAlgorithm = "MD5";
+                    blockSize = 64;
+                }
+                case 2 -> {
+                    chosenHashAlgorithm = "SHA256";
+                    blockSize = 64;;
+                }
+                case 3 -> {
+                    chosenHashAlgorithm = "SHA512";
+                    blockSize = 64;;
+                }
+                default -> {
+                    System.out.print("Invalid option, restarting setup....\n");
+                    //optionsMenu();
+                }
+            }
+            Handshake handshake = new Handshake(userName, "Symmetric", chosenEncryptionAlgorithm,keySize, chosenHashAlgorithm, blockSize);
 
-            }
-            default -> {
-                System.out.print("Invalid option, restarting setup....\n");
-                algorithmOptions();
-            }
-        }
-        System.out.println("--------------------------------------------------\n Please select the hash algorithm you want to use: \n * 1- MD5 \n * 2- SHA-256 \n * 3- SHA-512");
-        int op4 = usrInput.nextInt();
-        String chosenHashAlgorithm = null;
-        int blockSize = 0;
-        switch (op4) {
-            case 1 -> {
-                chosenHashAlgorithm = "MD5";
-                blockSize = 64;
-            }
-            case 2 -> {
-                chosenHashAlgorithm = "SHA256";
-                blockSize = 64;;
-            }
-            case 3 -> {
-                chosenHashAlgorithm = "SHA512";
-                blockSize = 64;;
-            }
-            default -> {
-                System.out.print("Invalid option, restarting setup....\n");
-                //optionsMenu();
-            }
-        }
-        Handshake handshake = new Handshake(userName, "Symmetric", chosenEncryptionAlgorithm,keySize, chosenHashAlgorithm, blockSize);
+
         return handshake;
     }
 
@@ -298,17 +301,33 @@ public class Client {
      */
     public void execute (BigInteger sharedSecret, Handshake handshake) throws Exception {
         Scanner usrInput = new Scanner ( System.in );
-
-        int count= FileHandler.userRequestCount.get(handshake.getUsername());
         try {
             while ( isConnected ) {
 
-
                 acceptedHandshake = in.readBoolean();
                 if(!acceptedHandshake){
+                    System.out.println();
                     System.out.println("Handshake not accepted, restarting connection...");
                     sharedSecret= agreeOnSharedSecret(receiverPublicRSAKey);
                     System.out.println("Current secret key being used with the server: "+sharedSecret);
+                    System.out.println();
+                    System.out.println("Do you want to change the current encryption method?");
+                    System.out.println("1.Yes");
+                    System.out.println("2.No");
+                    int encryptionDecision=0;
+                    while (encryptionDecision < 1 || encryptionDecision > 2) {
+                        Scanner scannerEncryption=new Scanner(System.in);
+                        encryptionDecision = scannerEncryption.nextInt();
+                        if(encryptionDecision==1){
+                            algorithmOptions();
+                        }
+                        else if(encryptionDecision==2){
+                            System.out.println("Maintaining the current settings...");
+                        }
+                        else{
+                            System.out.println("Invalid input. Please choose a valid option (1 or 2).");
+                        }
+                    }
                 }
                 // Reads the message to extract the path of the file
                 System.out.println ( "Write the path of the file" );

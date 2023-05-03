@@ -21,9 +21,7 @@ public class ClientHandler extends Thread {
     private PublicKey senderPublicRSAKey;
     private Handshake clientHandshake;
     private boolean canHandshake = true;
-
-    private int count;
-
+    private static int count;
     private String username;
 
     /**
@@ -43,9 +41,7 @@ public class ClientHandler extends Thread {
         this.privateRSAKey = keyPair.getPrivate ( );
         this.publicRSAKey = keyPair.getPublic ( );
         senderPublicRSAKey = rsaKeyDistribution ( in );
-        //recieve handshake
-
-
+        //receive handshake
     }
 
     /**
@@ -207,6 +203,9 @@ public class ClientHandler extends Thread {
         out.flush ( );
     }
 
+    public static int getCouDnt() {
+        return count;
+    }
 
     /**
      * Closes the connection by closing the socket and the streams.
