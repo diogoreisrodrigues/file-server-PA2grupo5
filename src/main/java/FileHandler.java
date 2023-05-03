@@ -99,8 +99,7 @@ public class FileHandler {
         }
     }
 
-
-
-
-
+    public static Map<String, Integer> getUserRequestCount() {
+        return userRequestCount;
+    }
 }

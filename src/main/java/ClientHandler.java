@@ -42,9 +42,7 @@ public class ClientHandler extends Thread {
         this.privateRSAKey = keyPair.getPrivate ( );
         this.publicRSAKey = keyPair.getPublic ( );
         senderPublicRSAKey = rsaKeyDistribution ( in );
-        //recieve handshake
-
-
+        //receive handshake
     }
 
     /**
@@ -231,6 +229,7 @@ public class ClientHandler extends Thread {
 
     public PublicKey getSenderPublicRSAKey() {
         return senderPublicRSAKey;
+
     }
 
     /**

@@ -50,17 +50,14 @@ public class FileHandlerTest {
         FileHandler.writeFile(path, bytes);
         byte[] result = FileHandler.readFile(path);
         assertEquals(content, new String(result));
-        File file = new File(path);
-        file.delete();
     }
 
     @Test
     public void testWriteUserRequests() throws IOException {
         FileHandler.writeUserRequests("Diogo",3);
         FileHandler.writeUserRequests("user1", 0);
-        assertThrows(IOException.class, () -> FileHandler.writeUserRequests("Jotta", 0));
-
-        //rever
+        assertEquals(FileHandler.getUserRequestCount().get("Diogo"),3);
+        assertEquals(FileHandler.getUserRequestCount().get("user1"),0);
     }
 
 }
