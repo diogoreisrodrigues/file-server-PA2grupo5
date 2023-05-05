@@ -9,7 +9,7 @@ public class ServerTest {
     private Server server;
     @Test
     @DisplayName("Server accepts client")
-    public void testServerAcceptsClientConnection() throws IOException, InterruptedException {
+    public void testServerAcceptsClientConnection() throws Exception {
         server = new Server(8080);
         Thread thread = new Thread(server);
         thread.start();
@@ -22,7 +22,7 @@ public class ServerTest {
 
     @Test
     @DisplayName("Server close connection")
-    public void testServerClosesConnection() throws IOException {
+    public void testServerClosesConnection() throws Exception {
         server = new Server(8080);
         Thread thread = new Thread(server);
         thread.start();
@@ -33,7 +33,7 @@ public class ServerTest {
 
     @Test
     @DisplayName("Server is connected")
-    public void testServerIsConnected() throws IOException {
+    public void testServerIsConnected() throws Exception {
         server = new Server(8080);
         Thread thread = new Thread(server);
         thread.start();

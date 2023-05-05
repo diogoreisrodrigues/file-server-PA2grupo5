@@ -12,7 +12,7 @@ public class MainServer {
      *
      * @throws IOException if is an I/O error while creating the server instance or starting the thread
      */
-    public static void main ( String[] args ) throws IOException {
+    public static void main ( String[] args ) throws Exception {
         Server server = new Server ( 8000 );
         Thread serverThread = new Thread ( server );
         serverThread.start ( );

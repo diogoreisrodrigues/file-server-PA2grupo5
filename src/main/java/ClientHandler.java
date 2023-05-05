@@ -29,18 +29,19 @@ public class ClientHandler extends Thread {
      * Creates a ClientHandler object by specifying the socket to communicate with the client. All the processing is
      * done in a separate thread.
      *
-     * @param client the socket to communicate with the client
-     *
+     * @param client        the socket to communicate with the client
+     * @param privateRSAKey
+     * @param publicRSAKey
      * @throws IOException when an I/O error occurs when creating the socket
      */
-    public ClientHandler ( Socket client ) throws Exception {
+    public ClientHandler (Socket client, PrivateKey privateRSAKey, PublicKey publicRSAKey) throws Exception {
         this.client = client;
         in = new ObjectInputStream ( client.getInputStream ( ) );
         out = new ObjectOutputStream ( client.getOutputStream ( ) );
+        this.privateRSAKey = privateRSAKey;
+        this.publicRSAKey = publicRSAKey;
         isConnected = true; // TODO: Check if this is necessary or if it should be controlled
-        KeyPair keyPair = Encryption.generateKeyPair ( );
-        this.privateRSAKey = keyPair.getPrivate ( );
-        this.publicRSAKey = keyPair.getPublic ( );
+
         senderPublicRSAKey = rsaKeyDistribution ( in );
         //receive handshake
     }
