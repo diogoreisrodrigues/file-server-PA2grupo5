@@ -26,13 +26,18 @@ public class ClientHandler extends Thread {
     private BigInteger sharedSecret;
 
     /**
-     * Creates a ClientHandler object by specifying the socket to communicate with the client. All the processing is
-     * done in a separate thread.
-     *
-     * @param client        the socket to communicate with the client
-     * @param privateRSAKey
-     * @param publicRSAKey
-     * @throws IOException when an I/O error occurs when creating the socket
+
+     Creates a ClientHandler object that communicates with a client over a specified socket. All processing is done in a
+
+     separate thread.
+
+     @param client the socket to communicate with the client
+
+     @param privateRSAKey the private RSA key used for encryption and decryption
+
+     @param publicRSAKey the public RSA key used for encryption and decryption
+
+     @throws Exception if there is an I/O error creating the socket or distributing RSA keys
      */
     public ClientHandler (Socket client, PrivateKey privateRSAKey, PublicKey publicRSAKey) throws Exception {
         this.client = client;
@@ -93,6 +98,14 @@ public class ClientHandler extends Thread {
         count= FileHandler.userRequestCount.get(username);
     }
 
+    /**
+
+     This method runs the ClientHandler thread. It sets up the client handler, updates the secret key,
+
+     Handle messages from the client, sends the content of a file to the client, and updates the request count for the user.
+
+     @throws RuntimeException if an exception is encountered while running the thread.
+     */
     @Override
     public void run ( ) {
         super.run ( );
@@ -122,6 +135,7 @@ public class ClientHandler extends Thread {
                     System.out.println("Secret key updated with the user: "+username+". Current secret key being used: " + sharedSecret);
                     FileHandler.writeUserRequests(username,count);  //update the count of requests for the user
                 }
+
                 byte[] decryptedMessage = handleMessage();
 
                 sendContentOfFile(decryptedMessage);
@@ -136,10 +150,16 @@ public class ClientHandler extends Thread {
         }
     }
 
+
     /**
-     * Handles the encrypted message of the user and extracts its content
-     * @return decryptedMessage the decrypted message
-     * @throws Exception
+
+     Handles the encrypted message received from the user and extracts its content.
+
+     Also verifies the MAC of the message before returning the decrypted message.
+
+     @return the decrypted message
+
+     @throws Exception if an error occurs while decrypting or verifying the MAC
      */
     public byte[] handleMessage() throws Exception {
         Message messageObj = ( Message ) in.readObject ( );
@@ -161,10 +181,11 @@ public class ClientHandler extends Thread {
     }
 
     /**
-     * Function that reads the contente from the file and sends it
-     * to the user
-     * @param decryptedMessage the decrypted message
-     * @throws Exception
+     Reads the content from the file and sends it to the user.
+
+     @param decryptedMessage the decrypted message containing the request for the file
+
+     @throws Exception when an I/O error occurs when reading or sending the file
      */
     public void sendContentOfFile(byte[] decryptedMessage) throws Exception {
         String request = new String ( decryptedMessage );
@@ -207,11 +228,13 @@ public class ClientHandler extends Thread {
     }
 
     /**
-     * Sends the file to the client
-     *
-     * @param content the content of the file to send
-     *
-     * @throws IOException when an I/O error occurs when sending the file
+
+     Sends the file to the client.
+
+     @param content the content of the file to send, as a byte array
+     @param sharedSecret the shared secret key obtained from the client handshake
+
+     @throws Exception if there is an error during encryption or HMAC computation
      */
     public void sendFile ( byte[] content, BigInteger sharedSecret ) throws Exception {
 
@@ -228,6 +251,11 @@ public class ClientHandler extends Thread {
         out.flush ( );
     }
 
+    /**
+
+     Returns the public RSA key of the sender.
+     @return the public RSA key of the sender, as a PublicKey object
+     */
     public PublicKey getSenderPublicRSAKey() {
         return senderPublicRSAKey;
 

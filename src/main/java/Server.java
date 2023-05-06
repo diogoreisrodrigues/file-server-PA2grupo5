@@ -35,6 +35,12 @@ public class Server implements Runnable {
         this.publicRSAKey = keyPair.getPublic ( );
     }
 
+    /**
+
+     This method runs the server thread. It listens for incoming connections and
+     processes them by calling the process() method. The thread continues to run
+     until the server is no longer connected.
+     */
     @Override
     public void run ( ) {
         try {

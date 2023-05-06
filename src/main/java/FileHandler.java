@@ -36,7 +36,11 @@ public class FileHandler {
     }
 
     /**
-     * Writes a text file and returns the result in bytes
+
+     Writes the given content to a text file at the specified path.
+     @param path The path of the file to write.
+     @param content The content to write to the file.
+     @throws IOException If an I/O error occurs while writing the file.
      */
     public static void writeFile ( String path , byte[] content ) throws IOException {
         File file = new File ( path );
@@ -70,6 +74,16 @@ public class FileHandler {
         }
     }
 
+    /**
+
+     Writes the number of requests made by the user to a file and updates the userRequestCount map.
+
+     @param username the username of the user
+
+     @param requestCount the number of requests made by the user
+
+     @throws IOException if there is an error writing to the file
+     */
     static void writeUserRequests(String username, int requestCount) throws IOException {
         File file = new File("clientRequests.txt");
         boolean userExists = false;
@@ -99,6 +113,11 @@ public class FileHandler {
         }
     }
 
+    /**
+
+     Returns a Map object containing the username as key and the number of requests made by the user as value.
+     @return a Map object containing the username as key and the number of requests made by the user as value
+     */
     public static Map<String, Integer> getUserRequestCount() {
         return userRequestCount;
     }

@@ -169,7 +169,7 @@ public class Client {
      *
      * @param publicKey the public key that will be written in to the file
      *
-     * @param username the username that gonna be used in the filename
+     * @param username the username that going to be used in the filename
      */
     public void writePublicKeysToDirectory(String directoryPath, PublicKey publicKey, String username) {
         File directory = new File(directoryPath);
@@ -195,7 +195,7 @@ public class Client {
      * @param directoryPath the path of the directory where the key file
      *                      and .gitignore file will be stored
      *
-     * @param privateKey the private key that gonna be written to the file system
+     * @param privateKey the private key that going to be written to the file system
      *
      * @param username the username of the user associated with the private key
      */
@@ -224,7 +224,7 @@ public class Client {
     }
 
     /**
-     * This method has no parameters and it sends a public RSA key to the other end of a connection
+     * This method has no parameters, and it sends a public RSA key to the other end of a connection
      */
     private void sendPublicRSAKey() {
         try {
@@ -296,8 +296,17 @@ public class Client {
 
 
     /**
-     * Executes the client. It reads the file from the console and sends it to the server. It waits for the response and
-     * writes the file to the temporary directory.
+
+     Executes the client's file retrieval process by performing the necessary handshake with the server and exchanging
+     messages with it. Reads the path of the file to request from the user and sends it to the server, then processes the
+     response and writes the file to the temporary directory. If the handshake is not accepted by the server, the client
+     restarts the connection and prompts the user to change the encryption method if desired.
+
+     @param sharedSecret the shared secret key to use for encryption and HMAC
+
+     @param handshake the handshake object containing the encryption and HMAC algorithms
+
+     @throws Exception when an I/O error occurs during the process
      */
     public void execute (BigInteger sharedSecret, Handshake handshake) throws Exception {
         Scanner usrInput = new Scanner ( System.in );
@@ -351,8 +360,8 @@ public class Client {
     /**
      * Reads the response from the server and writes the file to the temporary directory.
      *
-     * @param fileName  the name of the file to write
-     *
+     * @param fileName the name of the file to write
+     * @param sharedSecret the shared secret key used to encrypt/decrypt the message
      * @param handshake the handshake object containing the encryption and HMAC algorithms
      */
     private void processResponse (String fileName, BigInteger sharedSecret, Handshake handshake) {
@@ -384,12 +393,18 @@ public class Client {
     }
 
     /**
-     * Sends the path of the file to the server using the OutputStream of the socket. The message is sent as an object
-     * of the {@link Message} class.
-     *
-     * @param filePath the message to send
-     *
-     * @throws IOException when an I/O error occurs when sending the message
+
+     Sends a message to the server with the path of the file to be retrieved. The message is encrypted and sent as an object
+
+     of the {@link Message} class.
+
+     @param filePath the path of the file to be retrieved
+
+     @param sharedSecret the shared secret key used for encryption and decryption
+
+     @param handshake the handshake object containing the encryption and HMAC settings
+
+     @throws Exception if there is an I/O error sending the message or computing the HMAC
      */
     public void sendMessage ( String filePath, BigInteger sharedSecret, Handshake handshake ) throws Exception {
 
