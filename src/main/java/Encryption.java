@@ -58,12 +58,14 @@ public class Encryption {
     }
 
     /**
-     * @param message   the message to be encrypted
-     * @param secretKey the secret key used to encrypt the message
-     *
-     * @return the encrypted message as an array of bytes
-     *
-     * @throws Exception when the decryption fails
+
+     Decrypts the given message using the provided secret key and encryption algorithm.
+     @param message the message to be decrypted as an array of bytes
+     @param secretKey the secret key used for decryption as an array of bytes
+     @param chosenAlgorithm the encryption algorithm used for decryption as a string
+     @param keySize the size of the secret key as an integer
+     @return the decrypted message as an array of bytes
+     @throws Exception if the decryption fails
      */
     public static byte[] decryptMessage ( byte[] message , byte[] secretKey,  String chosenAlgorithm, int keySize ) throws Exception {
         byte[] secretKeyPadded = ByteBuffer.allocate ( keySize ).put ( secretKey ).array ( );
@@ -73,13 +75,17 @@ public class Encryption {
         return cipher.doFinal ( message );
     }
 
+
     /**
-     * @param message   the message to be decrypted
-     * @param secretKey the secret key used to decrypt the message
-     *
-     * @return the decrypted message as an array of bytes
-     *
-     * @throws Exception when the encryption fails
+
+     Encrypts a message using the specified secret key and encryption algorithm.
+     @param message the message to be encrypted
+     @param secretKey the secret key used to encrypt the message
+     @param chosenAlgorithm the chosen encryption algorithm
+     @param keySize the key size used for the encryption
+     @return the encrypted message as an array of bytes
+     @throws Exception when the encryption fails
+
      */
     public static byte[] encryptMessage ( byte[] message , byte[] secretKey, String chosenAlgorithm, int keySize ) throws Exception {
         byte[] secretKeyPadded = ByteBuffer.allocate ( keySize ).put ( secretKey ).array ( );
