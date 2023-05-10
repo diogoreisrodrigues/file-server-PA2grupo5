@@ -73,6 +73,7 @@ public class Client {
         }
     }
 
+
     /**
      * This give to the user a prompt to select encryption and hash algorithms and their respective parameters, it creates a new handshake object
      *
