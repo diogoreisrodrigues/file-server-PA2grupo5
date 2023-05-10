@@ -85,12 +85,12 @@ public class Client {
         int keySize = 0;
 
             Scanner usrInput = new Scanner(System.in);
-            System.out.println("--------------------------------------------------------\n Please select the encryption algorithm you want to use: \n * 1- AES \n * 2- DES \n * 3- 3DES");
+            System.out.println("--------------------------------------------------------\n Select the encryption algorithm you want to use: \n * 1- AES \n * 2- DES \n * 3- 3DES");
             int op1 = usrInput.nextInt();
             switch (op1) {
                 case 1 -> {
                     chosenEncryptionAlgorithm = "AES";
-                    System.out.println("----------------------------\n Please select the key size: \n * 1- 128bits \n * 2- 192bits \n * 3- 256bits");
+                    System.out.println("----------------------------\n Select the key size: \n * 1- 128bits \n * 2- 192bits \n * 3- 256bits");
                     System.out.print("Your option: ");
                     int op2 = usrInput.nextInt();
                     switch (op2) {
@@ -119,7 +119,7 @@ public class Client {
                     algorithmOptions();
                 }
             }
-            System.out.println("--------------------------------------------------\n Please select the hash algorithm you want to use: \n * 1- MD5 \n * 2- SHA-256 \n * 3- SHA-512");
+            System.out.println("--------------------------------------------------\n Select the hash algorithm you want to use: \n * 1- MD5 \n * 2- SHA-256 \n * 3- SHA-512");
             int op4 = usrInput.nextInt();
             String chosenHashAlgorithm = null;
             int blockSize = 0;
@@ -375,7 +375,7 @@ public class Client {
             MessageDigest messageDigest = MessageDigest.getInstance ( handshake.getHashAlgorithmName() );
             //String hmacKey = "5v8y/B?E";
             byte[] result = HMAC.computeHMAC ( decryptedMessage , sharedSecret.toByteArray() , handshake.getBlockSize() , messageDigest );
-            System.out.println ( "Message HMAC: " + new String ( result ) );
+
 
             if ( !Arrays.equals(result, digest)) {
                 System.out.println ( "MAC verification failed" );
@@ -413,7 +413,7 @@ public class Client {
         MessageDigest messageDigest = MessageDigest.getInstance ( handshake.getHashAlgorithmName() );
         //String hmacKey = "5v8y/B?E";
         byte[] result = HMAC.computeHMAC ( filePath.getBytes ( ) , sharedSecret.toByteArray() , handshake.getBlockSize() , messageDigest );
-        System.out.println ( "Message HMAC: " + new String ( result ) );
+
         // Creates the message object
         Message messageObj = new Message ( encryptedMessage, result, handshake.getUsername());
         // Sends the encrypted message
